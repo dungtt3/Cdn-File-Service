@@ -88,7 +88,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_UserClaims_AppUsers_UserId",
                         column: x => x.UserId,
-                        principalTable: "AppUsers",
+                        principalTable: "CDN.AppUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
