@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CdnFileService.Application/CdnFileService.Application.csproj" />
+    <Project Path="src/CdnFileService.Domain/CdnFileService.Domain.csproj" />
+    <Project Path="src/CdnFileService.Infrastructure/CdnFileService.Infrastructure.csproj" />
+    <Project Path="src/CdnFileService.Web/CdnFileService.Web.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,19 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+
+# Runtime data (created on startup)
+**/Storage/
+**/App_Data/
+**/logs/
+
+# Publish output
+publish/
+*.publishsettings
+
+# Rider / VS
+.idea/
+.vs/

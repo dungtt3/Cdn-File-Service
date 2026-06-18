@@ -1,0 +1,36 @@
+@{
+    ViewData["Title"] = "File Manager";
+    var elfinderVersion = "2.1.64";
+    var jqueryUiVersion = "1.13.2";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/@(jqueryUiVersion)/themes/smoothness/jquery-ui.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/elfinder/@(elfinderVersion)/css/elfinder.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/elfinder/@(elfinderVersion)/css/theme.min.css" />
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">File Manager</h1>
+    <span class="text-muted small">Assets are served from <code>@ViewBag.CdnRequestPath</code></span>
+</div>
+
+<div id="elfinder">Loading file manager&hellip;</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/@(jqueryUiVersion)/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/elfinder/@(elfinderVersion)/js/elfinder.min.js"></script>
+    <script>
+        $(function () {
+            $('#elfinder').elfinder({
+                url: '@Url.Content("~/el-finder/connector")',
+                cssAutoLoad: false,
+                height: 640,
+                lang: 'en',
+                commandsOptions: {
+                    info: { custom: {} }
+                }
+            });
+        });
+    </script>
+}
