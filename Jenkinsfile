@@ -48,7 +48,9 @@ pipeline {
 
                     rem Copy files (mirror). Preserve server configs, runtime logs, and - critically -
                     rem the shared CDN content under Storage / App_Data so a deploy never wipes assets.
-                    robocopy %PUBLISH_DIR% %DEPLOY_SHARE% /MIR /XF appsettings.json appsettings.Development.json appsettings.Production.json web.config app_offline.htm /XD logs Storage App_Data /NFL /NDL /NP /R:3 /W:5
+                    rem NOTE: web.config IS deployed (it registers AspNetCoreModuleV2 and is required for ASP.NET Core).
+                    rem Only appsettings.* are excluded so server-specific config (incl. appsettings.Production.json) is preserved.
+                    robocopy %PUBLISH_DIR% %DEPLOY_SHARE% /MIR /XF appsettings.json appsettings.Development.json appsettings.Production.json app_offline.htm /XD logs Storage App_Data /NFL /NDL /NP /R:3 /W:5
                     IF %ERRORLEVEL% GEQ 8 (
                         del %DEPLOY_SHARE%\\app_offline.htm >nul 2>&1
                         net use %DEPLOY_SHARE% /delete /y >nul 2>&1
