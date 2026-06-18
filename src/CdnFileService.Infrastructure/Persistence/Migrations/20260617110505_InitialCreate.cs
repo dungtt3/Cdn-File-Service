@@ -12,7 +12,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "AppUsers",
+                name: "CDN.AppUsers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -30,7 +30,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AuditLogs",
+                name: "CDN.AuditLogs",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -48,7 +48,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Files",
+                name: "CDN.Files",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -73,7 +73,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "UserClaims",
+                name: "CDN.UserClaims",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -94,7 +94,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "FileVersions",
+                name: "CDN.FileVersions",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -121,39 +121,39 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_AppUsers_UserName",
-                table: "AppUsers",
+                table: "CDN.AppUsers",
                 column: "UserName",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_Timestamp",
-                table: "AuditLogs",
+                table: "CDN.AuditLogs",
                 column: "Timestamp");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Files_Hash",
-                table: "Files",
+                table: "CDN.Files",
                 column: "Hash");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Files_IsDeleted",
-                table: "Files",
+                table: "CDN.Files",
                 column: "IsDeleted");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Files_RelativePath",
-                table: "Files",
+                table: "CDN.Files",
                 column: "RelativePath");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FileVersions_FileAssetId_VersionNumber",
-                table: "FileVersions",
+                table: "CDN.FileVersions",
                 columns: new[] { "FileAssetId", "VersionNumber" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserClaims_UserId",
-                table: "UserClaims",
+                table: "CDN.UserClaims",
                 column: "UserId");
         }
 
@@ -161,19 +161,19 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AuditLogs");
+                name: "CDN.AuditLogs");
 
             migrationBuilder.DropTable(
-                name: "FileVersions");
+                name: "CDN.FileVersions");
 
             migrationBuilder.DropTable(
-                name: "UserClaims");
+                name: "CDN.UserClaims");
 
             migrationBuilder.DropTable(
-                name: "Files");
+                name: "CDN.Files");
 
             migrationBuilder.DropTable(
-                name: "AppUsers");
+                name: "CDN.AppUsers");
         }
     }
 }
