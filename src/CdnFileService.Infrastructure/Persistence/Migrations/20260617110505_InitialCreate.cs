@@ -114,7 +114,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_FileVersions_Files_FileAssetId",
                         column: x => x.FileAssetId,
-                        principalTable: "Files",
+                        principalTable: "CDN.Files",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
