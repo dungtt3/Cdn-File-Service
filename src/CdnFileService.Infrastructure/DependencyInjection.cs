@@ -18,7 +18,8 @@ public static class DependencyInjection
         services.Configure<SeedAdminOptions>(configuration.GetSection(SeedAdminOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
-        services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(connectionString));
+        services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(connectionString,
+            sql => sql.MigrationsHistoryTable("CDN.__EFMigrationsHistory")));
 
         services.AddScoped<IFileValidator, FileValidator>();
         services.AddScoped<IImageProcessor, ImageSharpProcessor>();

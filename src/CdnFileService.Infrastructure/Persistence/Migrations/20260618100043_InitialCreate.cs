@@ -26,7 +26,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AppUsers", x => x.Id);
+                    table.PrimaryKey("PK_CDN.AppUsers", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -44,7 +44,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AuditLogs", x => x.Id);
+                    table.PrimaryKey("PK_CDN.AuditLogs", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -69,7 +69,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Files", x => x.Id);
+                    table.PrimaryKey("PK_CDN.Files", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -84,9 +84,9 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserClaims", x => x.Id);
+                    table.PrimaryKey("PK_CDN.UserClaims", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UserClaims_AppUsers_UserId",
+                        name: "FK_CDN.UserClaims_CDN.AppUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "CDN.AppUsers",
                         principalColumn: "Id",
@@ -110,9 +110,9 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_FileVersions", x => x.Id);
+                    table.PrimaryKey("PK_CDN.FileVersions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_FileVersions_Files_FileAssetId",
+                        name: "FK_CDN.FileVersions_CDN.Files_FileAssetId",
                         column: x => x.FileAssetId,
                         principalTable: "CDN.Files",
                         principalColumn: "Id",
@@ -120,39 +120,39 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_AppUsers_UserName",
+                name: "IX_CDN.AppUsers_UserName",
                 table: "CDN.AppUsers",
                 column: "UserName",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_AuditLogs_Timestamp",
+                name: "IX_CDN.AuditLogs_Timestamp",
                 table: "CDN.AuditLogs",
                 column: "Timestamp");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Files_Hash",
+                name: "IX_CDN.Files_Hash",
                 table: "CDN.Files",
                 column: "Hash");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Files_IsDeleted",
+                name: "IX_CDN.Files_IsDeleted",
                 table: "CDN.Files",
                 column: "IsDeleted");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Files_RelativePath",
+                name: "IX_CDN.Files_RelativePath",
                 table: "CDN.Files",
                 column: "RelativePath");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FileVersions_FileAssetId_VersionNumber",
+                name: "IX_CDN.FileVersions_FileAssetId_VersionNumber",
                 table: "CDN.FileVersions",
                 columns: new[] { "FileAssetId", "VersionNumber" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserClaims_UserId",
+                name: "IX_CDN.UserClaims_UserId",
                 table: "CDN.UserClaims",
                 column: "UserId");
         }

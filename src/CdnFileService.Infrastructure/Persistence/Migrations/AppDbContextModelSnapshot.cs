@@ -61,7 +61,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserName")
                         .IsUnique();
 
-                    b.ToTable("AppUsers", (string)null);
+                    b.ToTable("CDN.AppUsers", (string)null);
                 });
 
             modelBuilder.Entity("CdnFileService.Domain.Entities.AuditLog", b =>
@@ -102,7 +102,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Timestamp");
 
-                    b.ToTable("AuditLogs", (string)null);
+                    b.ToTable("CDN.AuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("CdnFileService.Domain.Entities.FileAsset", b =>
@@ -178,7 +178,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("RelativePath");
 
-                    b.ToTable("Files", (string)null);
+                    b.ToTable("CDN.Files", (string)null);
                 });
 
             modelBuilder.Entity("CdnFileService.Domain.Entities.FileVersion", b =>
@@ -224,7 +224,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
                     b.HasIndex("FileAssetId", "VersionNumber")
                         .IsUnique();
 
-                    b.ToTable("FileVersions", (string)null);
+                    b.ToTable("CDN.FileVersions", (string)null);
                 });
 
             modelBuilder.Entity("CdnFileService.Domain.Entities.UserClaim", b =>
@@ -252,7 +252,7 @@ namespace CdnFileService.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserClaims", (string)null);
+                    b.ToTable("CDN.UserClaims", (string)null);
                 });
 
             modelBuilder.Entity("CdnFileService.Domain.Entities.FileVersion", b =>

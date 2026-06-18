@@ -26,7 +26,8 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
             ?? "Server=(localdb)\\MSSQLLocalDB;Database=CdnFileService;Trusted_Connection=True;TrustServerCertificate=True";
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlServer(connectionString)
+            .UseSqlServer(connectionString,
+                sql => sql.MigrationsHistoryTable("CDN.__EFMigrationsHistory"))
             .Options;
 
         return new AppDbContext(options);

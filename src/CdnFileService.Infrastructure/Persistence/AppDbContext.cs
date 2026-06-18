@@ -15,9 +15,12 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        // Tables stay in the existing [dbo] schema but are name-prefixed with "CDN." so they don't
+        // collide with other applications sharing the same database, e.g. [dbo].[CDN.UserClaims].
+
         b.Entity<FileAsset>(e =>
         {
-            e.ToTable("Files");
+            e.ToTable("CDN.Files");
             e.HasKey(x => x.Id);
             e.Property(x => x.FileName).HasMaxLength(260).IsRequired();
             e.Property(x => x.OriginalFileName).HasMaxLength(260).IsRequired();
@@ -35,7 +38,7 @@ public class AppDbContext : DbContext
 
         b.Entity<FileVersion>(e =>
         {
-            e.ToTable("FileVersions");
+            e.ToTable("CDN.FileVersions");
             e.HasKey(x => x.Id);
             e.Property(x => x.PhysicalPath).HasMaxLength(1024);
             e.Property(x => x.Hash).HasMaxLength(64);
@@ -47,7 +50,7 @@ public class AppDbContext : DbContext
 
         b.Entity<AuditLog>(e =>
         {
-            e.ToTable("AuditLogs");
+            e.ToTable("CDN.AuditLogs");
             e.HasKey(x => x.Id);
             e.Property(x => x.UserName).HasMaxLength(256);
             e.Property(x => x.IpAddress).HasMaxLength(64);
@@ -58,7 +61,7 @@ public class AppDbContext : DbContext
 
         b.Entity<AppUser>(e =>
         {
-            e.ToTable("AppUsers");
+            e.ToTable("CDN.AppUsers");
             e.HasKey(x => x.Id);
             e.Property(x => x.UserName).HasMaxLength(256).IsRequired();
             e.Property(x => x.DisplayName).HasMaxLength(256);
@@ -69,7 +72,7 @@ public class AppDbContext : DbContext
 
         b.Entity<UserClaim>(e =>
         {
-            e.ToTable("UserClaims");
+            e.ToTable("CDN.UserClaims");
             e.HasKey(x => x.Id);
             e.Property(x => x.ClaimType).HasMaxLength(256);
             e.Property(x => x.ClaimValue).HasMaxLength(256);

@@ -1,9 +1,9 @@
-﻿IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+﻿IF OBJECT_ID(N'[CDN.__EFMigrationsHistory]') IS NULL
 BEGIN
-    CREATE TABLE [__EFMigrationsHistory] (
+    CREATE TABLE [CDN.__EFMigrationsHistory] (
         [MigrationId] nvarchar(150) NOT NULL,
         [ProductVersion] nvarchar(32) NOT NULL,
-        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+        CONSTRAINT [PK_CDN.__EFMigrationsHistory] PRIMARY KEY ([MigrationId])
     );
 END;
 GO
@@ -11,7 +11,7 @@ GO
 BEGIN TRANSACTION;
 GO
 
-CREATE TABLE [AppUsers] (
+CREATE TABLE [CDN.AppUsers] (
     [Id] int NOT NULL IDENTITY,
     [UserName] nvarchar(256) NOT NULL,
     [DisplayName] nvarchar(256) NOT NULL,
@@ -19,11 +19,11 @@ CREATE TABLE [AppUsers] (
     [PasswordSalt] nvarchar(512) NOT NULL,
     [IsActive] bit NOT NULL,
     [CreatedDate] datetime2 NOT NULL,
-    CONSTRAINT [PK_AppUsers] PRIMARY KEY ([Id])
+    CONSTRAINT [PK_CDN.AppUsers] PRIMARY KEY ([Id])
 );
 GO
 
-CREATE TABLE [AuditLogs] (
+CREATE TABLE [CDN.AuditLogs] (
     [Id] bigint NOT NULL IDENTITY,
     [UserName] nvarchar(256) NOT NULL,
     [IpAddress] nvarchar(64) NOT NULL,
@@ -31,11 +31,11 @@ CREATE TABLE [AuditLogs] (
     [FilePath] nvarchar(1024) NOT NULL,
     [Details] nvarchar(max) NULL,
     [Timestamp] datetime2 NOT NULL,
-    CONSTRAINT [PK_AuditLogs] PRIMARY KEY ([Id])
+    CONSTRAINT [PK_CDN.AuditLogs] PRIMARY KEY ([Id])
 );
 GO
 
-CREATE TABLE [Files] (
+CREATE TABLE [CDN.Files] (
     [Id] int NOT NULL IDENTITY,
     [FileName] nvarchar(260) NOT NULL,
     [OriginalFileName] nvarchar(260) NOT NULL,
@@ -50,21 +50,21 @@ CREATE TABLE [Files] (
     [CreatedDate] datetime2 NOT NULL,
     [UpdatedDate] datetime2 NULL,
     [IsDeleted] bit NOT NULL,
-    CONSTRAINT [PK_Files] PRIMARY KEY ([Id])
+    CONSTRAINT [PK_CDN.Files] PRIMARY KEY ([Id])
 );
 GO
 
-CREATE TABLE [UserClaims] (
+CREATE TABLE [CDN.UserClaims] (
     [Id] int NOT NULL IDENTITY,
     [UserId] int NOT NULL,
     [ClaimType] nvarchar(256) NOT NULL,
     [ClaimValue] nvarchar(256) NOT NULL,
-    CONSTRAINT [PK_UserClaims] PRIMARY KEY ([Id]),
-    CONSTRAINT [FK_UserClaims_AppUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AppUsers] ([Id]) ON DELETE CASCADE
+    CONSTRAINT [PK_CDN.UserClaims] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_CDN.UserClaims_CDN.AppUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [CDN.AppUsers] ([Id]) ON DELETE CASCADE
 );
 GO
 
-CREATE TABLE [FileVersions] (
+CREATE TABLE [CDN.FileVersions] (
     [Id] int NOT NULL IDENTITY,
     [FileAssetId] int NOT NULL,
     [VersionNumber] int NOT NULL,
@@ -74,34 +74,34 @@ CREATE TABLE [FileVersions] (
     [CreatedBy] nvarchar(256) NOT NULL,
     [CreatedDate] datetime2 NOT NULL,
     [IsCurrent] bit NOT NULL,
-    CONSTRAINT [PK_FileVersions] PRIMARY KEY ([Id]),
-    CONSTRAINT [FK_FileVersions_Files_FileAssetId] FOREIGN KEY ([FileAssetId]) REFERENCES [Files] ([Id]) ON DELETE CASCADE
+    CONSTRAINT [PK_CDN.FileVersions] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_CDN.FileVersions_CDN.Files_FileAssetId] FOREIGN KEY ([FileAssetId]) REFERENCES [CDN.Files] ([Id]) ON DELETE CASCADE
 );
 GO
 
-CREATE UNIQUE INDEX [IX_AppUsers_UserName] ON [AppUsers] ([UserName]);
+CREATE UNIQUE INDEX [IX_CDN.AppUsers_UserName] ON [CDN.AppUsers] ([UserName]);
 GO
 
-CREATE INDEX [IX_AuditLogs_Timestamp] ON [AuditLogs] ([Timestamp]);
+CREATE INDEX [IX_CDN.AuditLogs_Timestamp] ON [CDN.AuditLogs] ([Timestamp]);
 GO
 
-CREATE INDEX [IX_Files_Hash] ON [Files] ([Hash]);
+CREATE INDEX [IX_CDN.Files_Hash] ON [CDN.Files] ([Hash]);
 GO
 
-CREATE INDEX [IX_Files_IsDeleted] ON [Files] ([IsDeleted]);
+CREATE INDEX [IX_CDN.Files_IsDeleted] ON [CDN.Files] ([IsDeleted]);
 GO
 
-CREATE INDEX [IX_Files_RelativePath] ON [Files] ([RelativePath]);
+CREATE INDEX [IX_CDN.Files_RelativePath] ON [CDN.Files] ([RelativePath]);
 GO
 
-CREATE UNIQUE INDEX [IX_FileVersions_FileAssetId_VersionNumber] ON [FileVersions] ([FileAssetId], [VersionNumber]);
+CREATE UNIQUE INDEX [IX_CDN.FileVersions_FileAssetId_VersionNumber] ON [CDN.FileVersions] ([FileAssetId], [VersionNumber]);
 GO
 
-CREATE INDEX [IX_UserClaims_UserId] ON [UserClaims] ([UserId]);
+CREATE INDEX [IX_CDN.UserClaims_UserId] ON [CDN.UserClaims] ([UserId]);
 GO
 
-INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-VALUES (N'20260617110505_InitialCreate', N'8.0.11');
+INSERT INTO [CDN.__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260618100043_InitialCreate', N'8.0.11');
 GO
 
 COMMIT;
