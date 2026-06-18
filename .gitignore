@@ -10,6 +10,23 @@ obj/
 **/App_Data/
 **/logs/
 
+# Secrets / private config — keep these OUT of source control.
+# The committed appsettings.json holds only placeholders; real values go in
+# environment-specific overrides below (kept locally / on the server only).
+appsettings.Development.json
+appsettings.Production.json
+appsettings.local.json
+appsettings.*.local.json
+**/secrets.json
+*.secrets.json
+secrets.*.json
+
+# Certificates / keys
+*.pfx
+*.p12
+*.key
+*.pem
+
 # Publish output
 publish/
 *.publishsettings
