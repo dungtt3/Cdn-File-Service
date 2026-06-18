@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         DOTNET_CLI_TELEMETRY_OPTOUT = '1'
-        DEPLOY_SHARE = '\\\\10.0.10.56\\cdn'
-        REMOTE_USER  = '10.0.10.56\\mbweb'
+        DEPLOY_SHARE = '\\\\10.0.11.56\\cdn'
+        REMOTE_USER  = '10.0.11.56\\mbweb'
         REMOTE_PASS  = 'NgaKZ&GZK8@3&6yG6F@f6gr!'
         PROJECT      = 'src\\CdnFileService.Web\\CdnFileService.Web.csproj'
         PUBLISH_DIR  = 'src\\CdnFileService.Web\\bin\\publish'
@@ -68,7 +68,7 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment SUCCESS - Cdn-File-Service updated on \\\\10.0.10.56\\cdn'
+            echo 'Deployment SUCCESS - Cdn-File-Service updated on \\\\10.0.11.56\\cdn'
         }
         failure {
             bat '''
