@@ -72,7 +72,7 @@ public class FileStorageService : IFileStorageService
             if (!validation.IsValid)
                 return UploadResultDto.Failed(validation.Error!);
 
-            var relativeTarget = BuildRelativePath(request.Folder, request.SubPath, fileName);
+            var relativeTarget = BuildRelativePath(request.CompanyId, request.Folder, request.SubPath, fileName);
             var absoluteTarget = ResolveWithinRoot(relativeTarget);
             if (absoluteTarget is null)
                 return UploadResultDto.Failed("Invalid target path.");
@@ -90,7 +90,7 @@ public class FileStorageService : IFileStorageService
             if (existingByHash is not null)
             {
                 var aliasAsset = NewAsset(fileName, request.OriginalFileName, size, hash, request.UserName,
-                    existingByHash.PhysicalPath, existingByHash.RelativePath, existingByHash.Folder);
+                    existingByHash.PhysicalPath, existingByHash.RelativePath, existingByHash.Folder, existingByHash.CompanyId);
                 _db.Files.Add(aliasAsset);
                 await _db.SaveChangesAsync(cancellationToken);
                 return Ok(aliasAsset, wasDuplicate: true);
@@ -102,7 +102,7 @@ public class FileStorageService : IFileStorageService
             tempPath = string.Empty; // consumed
 
             var asset = NewAsset(fileName, request.OriginalFileName, size, hash, request.UserName,
-                absoluteTarget, relativeTarget, request.Folder);
+                absoluteTarget, relativeTarget, request.Folder, request.CompanyId);
             _db.Files.Add(asset);
 
             // Initial version record.
@@ -139,7 +139,9 @@ public class FileStorageService : IFileStorageService
         // ".versions" sub-folder. Each version's bytes are therefore preserved exactly once.
         var nameNoExt = Path.GetFileNameWithoutExtension(fileName);
         var ext = Path.GetExtension(fileName);
-        var versionsRelDir = CombineRel(asset.Folder, ".versions", nameNoExt);
+        // Version archive lives beside the canonical file (handles both shared and companies/{id}/... subtrees).
+        var relDir = Path.GetDirectoryName(asset.RelativePath)?.Replace('\\', '/') ?? asset.Folder;
+        var versionsRelDir = CombineRel(relDir, ".versions", nameNoExt);
         var versionsAbsDir = ResolveWithinRoot(versionsRelDir)!;
         Directory.CreateDirectory(versionsAbsDir);
 
@@ -228,7 +230,7 @@ public class FileStorageService : IFileStorageService
             return;
 
         var relative = Path.GetRelativePath(fullRoot, fullPath).Replace('\\', '/');
-        var folder = relative.Split('/')[0];
+        var (companyId, folder) = ParseCompanyAndFolder(relative);
         var fileName = Path.GetFileName(fullPath);
         var size = new FileInfo(fullPath).Length;
         var hash = await ComputeHashAsync(fullPath, cancellationToken);
@@ -236,7 +238,7 @@ public class FileStorageService : IFileStorageService
         var existing = await _db.Files.FirstOrDefaultAsync(f => f.RelativePath == relative && !f.IsDeleted, cancellationToken);
         if (existing is null)
         {
-            var asset = NewAsset(fileName, originalFileName, size, hash, userName, fullPath, relative, folder);
+            var asset = NewAsset(fileName, originalFileName, size, hash, userName, fullPath, relative, folder, companyId);
             _db.Files.Add(asset);
         }
         else if (existing.Hash != hash)
@@ -253,7 +255,7 @@ public class FileStorageService : IFileStorageService
     // ----- helpers -----
 
     private FileAsset NewAsset(string fileName, string originalName, long size, string hash, string user,
-        string physicalPath, string relativePath, string folder) => new()
+        string physicalPath, string relativePath, string folder, int? companyId) => new()
     {
         FileName = fileName,
         OriginalFileName = originalName,
@@ -263,6 +265,7 @@ public class FileStorageService : IFileStorageService
         PhysicalPath = physicalPath,
         RelativePath = relativePath,
         Folder = folder,
+        CompanyId = companyId,
         Hash = hash,
         CreatedBy = user,
         CreatedDate = DateTime.UtcNow
@@ -289,6 +292,7 @@ public class FileStorageService : IFileStorageService
             Size = asset.Size,
             RelativePath = asset.RelativePath,
             Folder = asset.Folder,
+            CompanyId = asset.CompanyId,
             Hash = asset.Hash,
             CdnUrl = BuildCdnUrl(asset.RelativePath),
             CreatedBy = asset.CreatedBy,
@@ -335,14 +339,37 @@ public class FileStorageService : IFileStorageService
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    private string BuildRelativePath(string folder, string? subPath, string fileName)
+    private string BuildRelativePath(int? companyId, string folder, string? subPath, string fileName)
     {
-        var parts = new List<string> { SanitizeSegment(folder) };
+        var parts = new List<string>();
+        // Company-owned files live under companies/{companyId}/...; shared files stay at the root.
+        if (companyId.HasValue)
+        {
+            parts.Add(SanitizeSegment(_options.CompaniesFolder));
+            parts.Add(companyId.Value.ToString());
+        }
+        parts.Add(SanitizeSegment(folder));
         if (!string.IsNullOrWhiteSpace(subPath))
             parts.AddRange(subPath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries)
                 .Select(SanitizeSegment));
         parts.Add(fileName);
         return string.Join('/', parts.Where(p => !string.IsNullOrEmpty(p)));
+    }
+
+    /// <summary>
+    /// Derives (companyId, logical folder) from a relative path. "companies/19/images/logo.png" →
+    /// (19, "images"); "js/common.js" → (null, "js").
+    /// </summary>
+    private (int? companyId, string folder) ParseCompanyAndFolder(string relativePath)
+    {
+        var segs = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segs.Length >= 3
+            && string.Equals(segs[0], _options.CompaniesFolder, StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segs[1], out var companyId))
+        {
+            return (companyId, segs[2]);
+        }
+        return (null, segs.Length > 0 ? segs[0] : string.Empty);
     }
 
     private static string CombineRel(params string[] segments) =>

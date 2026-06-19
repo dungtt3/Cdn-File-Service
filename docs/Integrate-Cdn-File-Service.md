@@ -14,7 +14,8 @@ Hướng dẫn cho các ứng dụng khác (ASP.NET MVC 5/Core, ReactJS, mobile,
 | Tài nguyên tĩnh (đọc) | `https://cdn.staxi.vn/cdn/{folder}/{path}` | Không |
 | REST API | `https://cdn.staxi.vn/api/files…` | Cookie (đăng nhập) |
 | File Manager (UI elFinder) | `https://cdn.staxi.vn/FileManager` | Cookie |
-| Đăng nhập | `https://cdn.staxi.vn/Account/Login` | — |
+| Đăng nhập (super-admin) | `https://cdn.staxi.vn/Account/Login` | — |
+| **SSO từ site công ty (không login lần 2)** | `https://cdn.staxi.vn/sso?token=…&returnUrl=/FileManager` | Token ký HMAC |
 | Health check | `https://cdn.staxi.vn/health` | Không |
 
 **Thư mục gốc:** `js`, `css`, `images`, `documents`, `fonts`, `media`, `temp` (cho phép tạo thư mục con).
@@ -35,6 +36,82 @@ https://cdn.staxi.vn/cdn/images/logo/logo_thumb.webp  (thumbnail tự sinh)
 
 Tài nguyên tĩnh được trả kèm: `Cache-Control: public,max-age=31536000`, `ETag`, `Last-Modified`,
 nén `gzip`/`brotli`. **Không cần xác thực để đọc.**
+
+---
+
+## Đa công ty (multi-tenant) & SSO
+
+Có **2 vùng**:
+
+| Vùng | Vị trí | URL | Quyền quản lý |
+|------|--------|-----|----------------|
+| **Shared** (dùng chung) | thư mục gốc `js/css/images/...` | `/cdn/js/common.js` | Chỉ **super-admin** ghi; mọi công ty **đọc** |
+| **Riêng công ty** | `companies/{companyId}/...` | `/cdn/companies/19/images/logo.png` | Chỉ user của công ty đó |
+
+- `companyId` = `MA_CONG_TY`. File công ty tải lên luôn nằm trong `companies/{companyId}/...` và **chỉ** user của công ty đó thấy/sửa/xoá (qua File Manager lẫn API).
+- User công ty thấy vùng **Shared ở chế độ chỉ-đọc** (để tái dùng asset chung) + toàn quyền trên thư mục công ty mình; **không** thấy file của công ty khác.
+- **Read URL vẫn công khai** (bản chất CDN). Việc cô lập áp dụng cho **quản lý** (upload/sửa/xoá/duyệt), không phải GET công khai một URL.
+
+> Server đặt `CompanyId` từ phiên đăng nhập, **bỏ qua mọi `companyId` client gửi lên** → không thể giả mạo sang công ty khác.
+
+---
+
+## SSO: mở File Manager từ site công ty, không đăng nhập lần 2
+
+Người dùng đã đăng nhập ở site công ty (vd BA.STaxi) bấm menu → mở thẳng File Manager của CDN, **không login lại**. Cơ chế: site công ty (giữ secret chung) tạo **token ký HMAC-SHA256** chứa `companyId`, user, quyền, hạn dùng; CDN xác thực và cấp phiên cookie **giới hạn theo công ty đó**.
+
+### Cấu hình (2 phía)
+- Trên **CDN** (`appsettings.Production.json`): `"Sso": { "Secret": "<chuỗi-bí-mật-chung>", "MaxAgeSeconds": 300 }`.
+- Trên **site công ty**: cùng `Secret`.
+
+### Tạo token ở site công ty (ASP.NET MVC 5, chỉ cần `HMACSHA256`)
+```csharp
+public static class CdnSso
+{
+    // Khớp định dạng token mà CDN xác thực: base64url(payloadJson).base64url(HMACSHA256(secret, payloadB64))
+    public static string BuildUrl(string cdnBase, string secret, int companyId, string userName,
+        string[] perms, string returnUrl = "/FileManager")
+    {
+        long exp = DateTimeOffset.UtcNow.AddMinutes(2).ToUnixTimeSeconds();
+        string nonce = Guid.NewGuid().ToString("N");
+        // Chú ý: key viết thường c,u,p,e,n; p là CSV các quyền FileManager.*
+        string payload = "{\"c\":" + companyId + ",\"u\":\"" + userName + "\",\"p\":\""
+            + string.Join(",", perms) + "\",\"e\":" + exp + ",\"n\":\"" + nonce + "\"}";
+        string pB64 = B64Url(Encoding.UTF8.GetBytes(payload));
+        using var h = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
+        string sig = B64Url(h.ComputeHash(Encoding.UTF8.GetBytes(pB64)));
+        string token = pB64 + "." + sig;
+        return cdnBase.TrimEnd('/') + "/sso?token=" + Uri.EscapeDataString(token)
+            + "&returnUrl=" + Uri.EscapeDataString(returnUrl);
+    }
+
+    private static string B64Url(byte[] b) =>
+        Convert.ToBase64String(b).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+}
+```
+
+### Menu trong site công ty
+```csharp
+// Controller
+var url = CdnSso.BuildUrl(
+    cdnBase: "https://cdn.staxi.vn",
+    secret: Global.CdnSsoSecret,                 // đọc từ User.config
+    companyId: Global.CompanyIdDefault,           // = MA_CONG_TY của user đang đăng nhập
+    userName: User.Identity.Name,
+    perms: new[] { "FileManager.View", "FileManager.Upload", "FileManager.Edit",
+                   "FileManager.Delete", "FileManager.Download" });
+ViewBag.CdnFileManagerUrl = url;
+```
+```html
+<a href="@ViewBag.CdnFileManagerUrl" target="_blank" rel="noopener">Quản lý file (CDN)</a>
+```
+
+Người dùng bấm → CDN xác thực token → vào thẳng File Manager: thấy **Shared (read-only)** + **thư mục công ty mình (toàn quyền)**.
+
+- Token nên có **hạn ngắn** (vài phút) — chỉ dùng để "vào cửa", phiên sau đó là cookie của CDN.
+- SSO **không** cấp quyền super-admin; chỉ cấp các quyền `FileManager.*` ghi trong token.
+- Token sai/hết hạn → CDN trả **401**.
+- Mặc định mở bằng **link/tab mới** (cookie `SameSite=Lax`). Muốn **nhúng iframe** trong site công ty thì CDN phải đổi cookie sang `SameSite=None; Secure`.
 
 ---
 

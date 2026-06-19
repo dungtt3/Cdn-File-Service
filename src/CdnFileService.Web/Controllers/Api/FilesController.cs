@@ -22,21 +22,23 @@ public class FilesController : ControllerBase
         _audit = audit;
     }
 
-    /// <summary>GET /api/files — list/search file metadata (paged).</summary>
+    /// <summary>GET /api/files — list/search file metadata (paged), scoped to the caller's tenant.</summary>
     [HttpGet]
     public async Task<ActionResult<object>> List([FromQuery] FileListQuery query, CancellationToken ct)
     {
+        ApplyTenantScope(query);
         var items = await _metadata.ListAsync(query, ct);
         var total = await _metadata.CountAsync(query, ct);
         return Ok(new { total, page = query.Page, pageSize = query.PageSize, items });
     }
 
-    /// <summary>GET /api/files/{id} — metadata for a single file.</summary>
+    /// <summary>GET /api/files/{id} — metadata for a single file (tenant-checked).</summary>
     [HttpGet("{id:int}")]
     public async Task<ActionResult<FileDto>> Get(int id, CancellationToken ct)
     {
         var file = await _metadata.GetAsync(id, ct);
-        return file is null ? NotFound() : Ok(file);
+        if (file is null || !CanAccess(file.CompanyId)) return NotFound();
+        return Ok(file);
     }
 
     /// <summary>POST /api/files/upload — upload a single file (multipart/form-data).</summary>
@@ -47,12 +49,17 @@ public class FilesController : ControllerBase
         [FromForm] IFormFile file,
         [FromForm] string folder,
         [FromForm] string? subPath,
+        [FromForm] int? companyId,
         CancellationToken ct)
     {
         if (file is null || file.Length == 0)
             return BadRequest(UploadResultDto.Failed("No file was provided."));
         if (string.IsNullOrWhiteSpace(folder))
             return BadRequest(UploadResultDto.Failed("A target folder is required."));
+
+        // Tenant: a company user always uploads into their own company; the form value is ignored.
+        // A super-admin may target the shared zone (null) or any company via the form value.
+        int? targetCompany = IsSuperAdmin ? companyId : CallerCompanyId;
 
         await using var stream = file.OpenReadStream();
         var result = await _storage.UploadAsync(new UploadRequest
@@ -61,6 +68,7 @@ public class FilesController : ControllerBase
             OriginalFileName = file.FileName,
             Folder = folder,
             SubPath = subPath,
+            CompanyId = targetCompany,
             UserName = User.Identity?.Name ?? "unknown",
             ContentType = file.ContentType
         }, ct);
@@ -74,29 +82,56 @@ public class FilesController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>DELETE /api/files/{id} — soft-delete a file's metadata.</summary>
+    /// <summary>DELETE /api/files/{id} — soft-delete a file's metadata (tenant-checked).</summary>
     [HttpDelete("{id:int}")]
     [Authorize(Policy = Permissions.Delete)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var file = await _metadata.GetAsync(id, ct);
-        if (file is null) return NotFound();
+        if (file is null || !CanAccess(file.CompanyId)) return NotFound();
 
         await _metadata.SoftDeleteAsync(id, ct);
         await _audit.LogAsync(User.Identity?.Name ?? "unknown", ClientIp(), "Delete", file.RelativePath);
         return NoContent();
     }
 
-    /// <summary>GET /api/files/download/{id} — stream the file's current bytes.</summary>
+    /// <summary>GET /api/files/download/{id} — stream the file's current bytes (tenant-checked).</summary>
     [HttpGet("download/{id:int}")]
     [Authorize(Policy = Permissions.Download)]
     public async Task<IActionResult> Download(int id, CancellationToken ct)
     {
+        var file = await _metadata.GetAsync(id, ct);
+        if (file is null || !CanAccess(file.CompanyId)) return NotFound();
+
         var download = await _storage.OpenReadAsync(id, ct);
         if (download is null) return NotFound();
 
         await _audit.LogAsync(User.Identity?.Name ?? "unknown", ClientIp(), "Download", download.FileName);
         return File(download.Stream, download.MimeType, download.FileName);
+    }
+
+    // ----- tenant helpers (always derived from claims, never trusted from the client) -----
+
+    private bool IsSuperAdmin => User.HasClaim(Permissions.ClaimType, Permissions.AllCompanies);
+
+    private int? CallerCompanyId =>
+        int.TryParse(User.FindFirst(Permissions.CompanyClaimType)?.Value, out var id) ? id : null;
+
+    private bool CanAccess(int? fileCompanyId) =>
+        IsSuperAdmin || fileCompanyId == CallerCompanyId;
+
+    private void ApplyTenantScope(FileListQuery query)
+    {
+        if (IsSuperAdmin)
+        {
+            // Admin sees everything, or one company if explicitly requested via ?companyId=.
+            query.AllCompanies = query.CompanyId is null;
+        }
+        else
+        {
+            query.AllCompanies = false;
+            query.CompanyId = CallerCompanyId; // forced to the caller's tenant (null = shared)
+        }
     }
 
     private string ClientIp() => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "-";

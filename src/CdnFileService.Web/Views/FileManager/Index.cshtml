@@ -12,7 +12,18 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3 mb-0">File Manager</h1>
-    <span class="text-muted small">Assets are served from <code>@ViewBag.CdnRequestPath</code></span>
+    <span class="text-muted small">
+        @if (ViewBag.IsSuperAdmin == true)
+        {
+            <span class="badge text-bg-danger">Super-admin · all companies</span>
+        }
+        else if (!string.IsNullOrEmpty((string?)ViewBag.CompanyId))
+        {
+            <span class="badge text-bg-primary">Company @ViewBag.CompanyId</span>
+            <span>· Shared (read-only)</span>
+        }
+        · served from <code>@ViewBag.CdnRequestPath</code>
+    </span>
 </div>
 
 <div id="elfinder">Loading file manager&hellip;</div>

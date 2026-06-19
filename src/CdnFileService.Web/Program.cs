@@ -52,6 +52,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         o.AccessDeniedPath = "/Account/Denied";
         o.ExpireTimeSpan = TimeSpan.FromHours(8);
         o.SlidingExpiration = true;
+        // Lax works for the top-level redirect SSO flow (menu link / new tab).
+        // For cross-site iframe embedding, change to SameSiteMode.None + Secure (HTTPS only).
+        o.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
     });
 
 builder.Services.AddAuthorization(o =>

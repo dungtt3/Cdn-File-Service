@@ -16,6 +16,8 @@ public class FileManagerController : Controller
     public IActionResult Index()
     {
         ViewBag.CdnRequestPath = _options.CdnRequestPath;
+        ViewBag.IsSuperAdmin = User.HasClaim(Permissions.ClaimType, Permissions.AllCompanies);
+        ViewBag.CompanyId = User.FindFirst(Permissions.CompanyClaimType)?.Value;
         return View();
     }
 }

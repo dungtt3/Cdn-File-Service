@@ -16,6 +16,7 @@ public static class DependencyInjection
     {
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
         services.Configure<SeedAdminOptions>(configuration.GetSection(SeedAdminOptions.SectionName));
+        services.Configure<SsoOptions>(configuration.GetSection(SsoOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(connectionString,
@@ -27,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IFileMetadataService, FileMetadataService>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddSingleton<ISsoTokenService, SsoTokenService>();
 
         services.AddQuartzJobs();
 

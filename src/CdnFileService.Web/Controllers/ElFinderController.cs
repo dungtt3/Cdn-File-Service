@@ -55,33 +55,89 @@ public class ElFinderController : Controller
     private async Task SetupConnectorAsync()
     {
         var root = _options.RootPath;
-        var contentRoot = _env.ContentRootPath;
-
-        var volume = new Volume(_driver,
-            rootDirectory: root,
-            tempDirectory: ElFinderPaths.Quarantine(contentRoot),
-            url: _options.CdnRequestPath,
-            thumbUrl: ElFinderPaths.ThumbRequestPath,
-            tempArchiveDirectory: ElFinderPaths.Archive(contentRoot),
-            chunkDirectory: ElFinderPaths.Chunk(contentRoot),
-            thumbnailDirectory: ElFinderPaths.Thumb(contentRoot),
-            directorySeparatorChar: Path.DirectorySeparatorChar)
-        {
-            Name = "Storage",
-            MaxUploadSize = _options.MaxUploadSizeBytes
-        };
-
         var userName = User.Identity?.Name ?? "unknown";
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "-";
 
         // Mirror elFinder uploads into the metadata DB (+ image variants), and audit them.
+        // RegisterPhysicalFileAsync infers the company from the path (companies/{id}/...).
         _driver.OnAfterUpload.Add(async (file, destFile, formFile, isOverwrite, isChunking) =>
         {
             await _storage.RegisterPhysicalFileAsync(destFile.FullName, formFile.FileName, userName);
             await _audit.LogAsync(userName, ip, "Upload", destFile.FullName);
         });
 
-        _connector.AddVolume(volume);
-        await _driver.SetupVolumeAsync(volume);
+        var isSuperAdmin = User.HasClaim(Permissions.ClaimType, Permissions.AllCompanies);
+        if (isSuperAdmin)
+        {
+            // Super-admin manages the whole volume (shared + every company), read-write.
+            var all = BuildVolume(root, "all", _options.CdnRequestPath, "All storage", readOnly: false, hideCompanies: false);
+            _connector.AddVolume(all);
+            await _driver.SetupVolumeAsync(all);
+            return;
+        }
+
+        // Company user: shared zone read-only (companies/ hidden) + own company read-write.
+        var shared = BuildVolume(root, "shared", _options.CdnRequestPath, "Shared", readOnly: true, hideCompanies: true);
+        _connector.AddVolume(shared);
+        await _driver.SetupVolumeAsync(shared);
+
+        if (TryGetCompanyId(out var companyId))
+        {
+            var companyRoot = Path.Combine(root, _options.CompaniesFolder, companyId.ToString());
+            Directory.CreateDirectory(companyRoot);
+            var companyUrl = $"{_options.CdnRequestPath.TrimEnd('/')}/{_options.CompaniesFolder}/{companyId}";
+            var company = BuildVolume(companyRoot, $"c{companyId}", companyUrl, $"Company {companyId}", readOnly: false, hideCompanies: false);
+            _connector.AddVolume(company);
+            await _driver.SetupVolumeAsync(company);
+        }
+    }
+
+    private bool TryGetCompanyId(out int companyId)
+    {
+        companyId = 0;
+        var claim = User.FindFirst(Permissions.CompanyClaimType)?.Value;
+        return !string.IsNullOrEmpty(claim) && int.TryParse(claim, out companyId);
+    }
+
+    private Volume BuildVolume(string rootDirectory, string key, string url, string name, bool readOnly, bool hideCompanies)
+    {
+        var contentRoot = _env.ContentRootPath;
+        var work = ElFinderPaths.WorkRoot(contentRoot);
+
+        var volume = new Volume(_driver,
+            rootDirectory: rootDirectory,
+            tempDirectory: Path.Combine(work, "quarantine", key),
+            url: url,
+            thumbUrl: $"{ElFinderPaths.ThumbRequestPath}/{key}",
+            tempArchiveDirectory: Path.Combine(work, "archive", key),
+            chunkDirectory: Path.Combine(work, "chunk", key),
+            thumbnailDirectory: Path.Combine(ElFinderPaths.Thumb(contentRoot), key),
+            directorySeparatorChar: Path.DirectorySeparatorChar)
+        {
+            Name = name,
+            MaxUploadSize = _options.MaxUploadSizeBytes,
+            IsReadOnly = readOnly
+        };
+
+        if (hideCompanies)
+        {
+            // Hide (and deny access to) the per-company subtree from the shared volume so a company
+            // user cannot browse other tenants' files.
+            var companiesAbs = Path.GetFullPath(Path.Combine(rootDirectory, _options.CompaniesFolder));
+            volume.ObjectAttributes = new[]
+            {
+                new FilteredObjectAttribute
+                {
+                    ObjectFilter = o => string.Equals(
+                        Path.GetFullPath(o.FullName), companiesAbs, StringComparison.OrdinalIgnoreCase),
+                    Visible = false,
+                    Read = false,
+                    Write = false,
+                    Access = false
+                }
+            };
+        }
+
+        return volume;
     }
 }

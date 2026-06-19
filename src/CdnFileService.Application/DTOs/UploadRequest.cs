@@ -12,6 +12,9 @@ public class UploadRequest
     /// <summary>Optional sub-path under the folder, e.g. "logo" → images/logo.</summary>
     public string? SubPath { get; init; }
 
+    /// <summary>Owning tenant (= MA_CONG_TY). Null = shared zone (super-admin only).</summary>
+    public int? CompanyId { get; init; }
+
     public required string UserName { get; init; }
     public string? ContentType { get; init; }
 }

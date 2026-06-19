@@ -31,6 +31,9 @@ public class FileAsset
     /// <summary>Top-level logical folder (js, css, images, documents, fonts, media, temp).</summary>
     public string Folder { get; set; } = string.Empty;
 
+    /// <summary>Owning tenant (= MA_CONG_TY). Null = shared/global zone (managed by super-admin).</summary>
+    public int? CompanyId { get; set; }
+
     /// <summary>SHA-256 hash of the file content (hex). Used for duplicate detection.</summary>
     public string Hash { get; set; } = string.Empty;
 

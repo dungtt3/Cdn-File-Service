@@ -11,6 +11,7 @@ public class FileDto
     public long Size { get; set; }
     public string RelativePath { get; set; } = string.Empty;
     public string Folder { get; set; } = string.Empty;
+    public int? CompanyId { get; set; }
     public string Hash { get; set; } = string.Empty;
     public string CdnUrl { get; set; } = string.Empty;
     public string CreatedBy { get; set; } = string.Empty;

@@ -54,6 +54,17 @@ public class FileMetadataService : IFileMetadataService
     private IQueryable<FileAsset> BuildQuery(FileListQuery query)
     {
         var q = _db.Files.AsNoTracking().Where(f => !f.IsDeleted);
+
+        // Tenant scoping: super-admin (AllCompanies) sees everything; a company sees only its own;
+        // otherwise the shared zone (CompanyId == null).
+        if (!query.AllCompanies)
+        {
+            if (query.CompanyId.HasValue)
+                q = q.Where(f => f.CompanyId == query.CompanyId);
+            else
+                q = q.Where(f => f.CompanyId == null);
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Folder))
             q = q.Where(f => f.Folder == query.Folder);
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -74,6 +85,7 @@ public class FileMetadataService : IFileMetadataService
         Size = f.Size,
         RelativePath = f.RelativePath,
         Folder = f.Folder,
+        CompanyId = f.CompanyId,
         Hash = f.Hash,
         CdnUrl = _storage.BuildCdnUrl(f.RelativePath),
         CreatedBy = f.CreatedBy,

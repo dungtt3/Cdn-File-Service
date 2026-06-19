@@ -34,6 +34,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.Hash);
             e.HasIndex(x => x.RelativePath);
             e.HasIndex(x => x.IsDeleted);
+            e.HasIndex(x => x.CompanyId);
         });
 
         b.Entity<FileVersion>(e =>
@@ -68,6 +69,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.PasswordHash).HasMaxLength(512);
             e.Property(x => x.PasswordSalt).HasMaxLength(512);
             e.HasIndex(x => x.UserName).IsUnique();
+            e.HasIndex(x => x.CompanyId);
         });
 
         b.Entity<UserClaim>(e =>

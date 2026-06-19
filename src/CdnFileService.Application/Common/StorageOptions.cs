@@ -14,9 +14,12 @@ public class StorageOptions
     /// <summary>Request path prefix under which assets are served by this app (e.g. "/cdn").</summary>
     public string CdnRequestPath { get; set; } = "/cdn";
 
-    /// <summary>Top-level folders created automatically on startup.</summary>
+    /// <summary>Top-level folders created automatically on startup (the shared zone).</summary>
     public string[] RootFolders { get; set; } =
         { "js", "css", "images", "documents", "fonts", "media", "temp" };
+
+    /// <summary>Folder under the root that holds per-company (tenant) subtrees, e.g. companies/{companyId}/...</summary>
+    public string CompaniesFolder { get; set; } = "companies";
 
     /// <summary>Allowed file extensions (without dot, lower-case).</summary>
     public string[] AllowedExtensions { get; set; } =

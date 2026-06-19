@@ -107,3 +107,25 @@ GO
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+GO
+
+ALTER TABLE [CDN.Files] ADD [CompanyId] int NULL;
+GO
+
+ALTER TABLE [CDN.AppUsers] ADD [CompanyId] int NULL;
+GO
+
+CREATE INDEX [IX_CDN.Files_CompanyId] ON [CDN.Files] ([CompanyId]);
+GO
+
+CREATE INDEX [IX_CDN.AppUsers_CompanyId] ON [CDN.AppUsers] ([CompanyId]);
+GO
+
+INSERT INTO [CDN.__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260619044717_AddCompanyId', N'8.0.11');
+GO
+
+COMMIT;
+GO
+

@@ -14,6 +14,9 @@ public class AppUser
     public string PasswordHash { get; set; } = string.Empty;
     public string PasswordSalt { get; set; } = string.Empty;
 
+    /// <summary>Tenant the user belongs to (= MA_CONG_TY). Null = system/super-admin (all companies).</summary>
+    public int? CompanyId { get; set; }
+
     public bool IsActive { get; set; } = true;
     public DateTime CreatedDate { get; set; }
 

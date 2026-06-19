@@ -22,10 +22,14 @@ public static class DbSeeder
 
         await db.Database.MigrateAsync(cancellationToken);
 
-        if (!await db.AppUsers.AnyAsync(u => u.UserName == seed.UserName, cancellationToken))
+        var admin = await db.AppUsers
+            .Include(u => u.Claims)
+            .FirstOrDefaultAsync(u => u.UserName == seed.UserName, cancellationToken);
+
+        if (admin is null)
         {
             var (hash, salt) = PasswordHasher.Hash(seed.Password);
-            var admin = new AppUser
+            admin = new AppUser
             {
                 UserName = seed.UserName,
                 DisplayName = seed.DisplayName,
@@ -40,6 +44,21 @@ public static class DbSeeder
             db.AppUsers.Add(admin);
             await db.SaveChangesAsync(cancellationToken);
             logger.LogInformation("Seeded admin user '{User}' with all FileManager permissions.", seed.UserName);
+        }
+        else
+        {
+            // Upgrade path: ensure an existing admin has every permission (e.g. the new AllCompanies).
+            var missing = Permissions.All
+                .Where(p => !admin.Claims.Any(c => c.ClaimType == Permissions.ClaimType && c.ClaimValue == p))
+                .ToList();
+            if (missing.Count > 0)
+            {
+                foreach (var p in missing)
+                    admin.Claims.Add(new UserClaim { ClaimType = Permissions.ClaimType, ClaimValue = p });
+                await db.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Backfilled {Count} permission(s) for admin '{User}': {Perms}",
+                    missing.Count, seed.UserName, string.Join(", ", missing));
+            }
         }
     }
 }
