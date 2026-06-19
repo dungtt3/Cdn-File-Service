@@ -151,11 +151,12 @@ const CDN = "https://cdn.staxi.vn/cdn";
 <img src={`${CDN}/images/logo/logo.png`} />
 ```
 
-### Đa công ty (multi-tenant)
-Quy ước thư mục theo mã công ty để tách tài nguyên:
+### Tài nguyên riêng theo công ty
+File do công ty tải lên nằm dưới `companies/{companyId}/...` (xem mục "Đa công ty & SSO"):
 ```
-https://cdn.staxi.vn/cdn/images/company/19/banner.png
+https://cdn.staxi.vn/cdn/companies/19/images/banner.png
 ```
+URL đọc là công khai; việc cô lập chỉ áp dụng cho quản lý (upload/sửa/xoá).
 
 ---
 
@@ -172,11 +173,19 @@ Client phía server đăng nhập một lần để lấy cookie rồi tái sử
 |--------|-------|-------|
 | GET | `/api/files?folder=&search=&page=&pageSize=` | `FileManager.View` |
 | GET | `/api/files/{id}` | `FileManager.View` |
-| POST | `/api/files/upload` (multipart: `file`, `folder`, `subPath?`) | `FileManager.Upload` |
+| POST | `/api/files/upload` (multipart: `file`, `folder`, `subPath?`, `companyId?`) | `FileManager.Upload` |
 | DELETE | `/api/files/{id}` | `FileManager.Delete` |
 | GET | `/api/files/download/{id}` | `FileManager.Download` |
 
-Kết quả upload (JSON) chứa `cdnUrl`, `wasDuplicate`, `wasNewVersion`, `file.id`, `relativePath`…
+Kết quả upload (JSON) chứa `cdnUrl`, `companyId`, `wasDuplicate`, `wasNewVersion`, `file.id`, `relativePath`…
+
+> **Phân tách theo công ty (quan trọng):** mọi endpoint tự động giới hạn theo công ty của tài
+> khoản gọi (lấy từ claim, **không tin `companyId` client gửi**):
+> - Tài khoản công ty → chỉ thấy/ghi file công ty mình; `list` chỉ trả file của công ty đó; `get`/`download`/`delete` file công ty khác → **404**. Trường `companyId` khi upload bị **bỏ qua** (luôn ép về công ty của tài khoản).
+> - Tài khoản **super-admin** (`FileManager.AllCompanies`) → thấy tất cả; upload vào vùng shared (không gửi `companyId`) hoặc vào một công ty cụ thể bằng cách gửi `companyId` trong form; `list` có thể lọc bằng `?companyId=`.
+>
+> ⇒ Nên tạo **một tài khoản dịch vụ cho mỗi công ty** (file tự vào đúng `companies/{id}/...`),
+> hoặc một tài khoản super-admin và truyền `companyId` mỗi lần upload.
 
 ### Client C# (.NET Framework 4.5+) — tự đăng nhập & tái dùng phiên
 ```csharp
@@ -196,8 +205,9 @@ public class CdnFileServiceClient
         _http = new HttpClient(h) { Timeout = TimeSpan.FromMinutes(10) };
     }
 
+    // companyId chỉ có tác dụng khi tài khoản là super-admin; tài khoản công ty luôn bị ép về công ty mình.
     public async Task<string> UploadAsync(byte[] content, string fileName, string folder,
-        string subPath = null, string contentType = "application/octet-stream")
+        string subPath = null, int? companyId = null, string contentType = "application/octet-stream")
     {
         await EnsureLoginAsync();
         using (var form = new MultipartFormDataContent())
@@ -207,6 +217,7 @@ public class CdnFileServiceClient
             form.Add(fc, "file", fileName);
             form.Add(new StringContent(folder), "folder");
             if (!string.IsNullOrEmpty(subPath)) form.Add(new StringContent(subPath), "subPath");
+            if (companyId.HasValue) form.Add(new StringContent(companyId.Value.ToString()), "companyId");
 
             var resp = await _http.PostAsync(_baseUrl + "/api/files/upload", form);
             if (resp.StatusCode == HttpStatusCode.Unauthorized || resp.StatusCode == HttpStatusCode.Found)
@@ -242,8 +253,12 @@ public class CdnFileServiceClient
 ```
 Dùng:
 ```csharp
-var cdn = new CdnFileServiceClient("https://cdn.staxi.vn", "svc-webadmin", "****");
-var json = await cdn.UploadAsync(bytes, "logo.png", folder: "images", subPath: "company/19", contentType: "image/png");
+// Tài khoản dịch vụ của công ty 19 -> file tự vào companies/19/images/...
+var cdn = new CdnFileServiceClient("https://cdn.staxi.vn", "svc-company-19", "****");
+var json = await cdn.UploadAsync(bytes, "logo.png", folder: "images", contentType: "image/png");
+
+// Hoặc tài khoản super-admin, chỉ định công ty đích:
+// var json = await cdn.UploadAsync(bytes, "logo.png", folder: "images", companyId: 19, contentType: "image/png");
 // json.cdnUrl -> lưu DB để hiển thị
 ```
 
@@ -281,16 +296,20 @@ Người dùng đăng nhập CDN (tài khoản riêng) rồi upload/đổi tên/
 ---
 
 ## 6. Checklist tích hợp
-- [ ] Đọc tài nguyên: dùng `https://cdn.staxi.vn/cdn/{folder}/{path}` (không cần auth).
-- [ ] Upload qua API: tạo **tài khoản dịch vụ** trên CDN + dùng `CdnFileServiceClient`.
-- [ ] Quản lý thủ công: link/iframe tới `/FileManager`.
+- [ ] Đọc tài nguyên shared: `https://cdn.staxi.vn/cdn/{folder}/{path}` (không cần auth).
+- [ ] Đọc tài nguyên công ty: `https://cdn.staxi.vn/cdn/companies/{companyId}/{folder}/{path}`.
+- [ ] **SSO menu (khuyến nghị):** cấu hình `Sso:Secret` chung 2 phía + dùng `CdnSso.BuildUrl(...)` cho menu "Quản lý file".
+- [ ] Upload qua API (server-to-server): tạo **tài khoản dịch vụ theo công ty** + dùng `CdnFileServiceClient`.
 - [ ] App của bạn kết nối được tới `cdn.staxi.vn` (firewall/DNS/HTTPS).
 
 ## 7. Xử lý sự cố nhanh
 | Triệu chứng | Nguyên nhân / xử lý |
 |-------------|---------------------|
-| Tài nguyên 404 | Thiếu/thừa prefix `/cdn`. Dùng `https://cdn.staxi.vn/cdn/...`. |
+| Tài nguyên 404 | Thiếu/thừa prefix `/cdn`, hoặc thiếu `companies/{id}/` với file công ty. |
 | Upload trả 302/401 | Sai tài khoản hoặc thiếu quyền `FileManager.Upload`. |
+| SSO trả 401 | Sai `Sso:Secret` (2 phía khác nhau), token hết hạn, hoặc sai định dạng payload (key `c,u,p,e,n`). |
+| Thấy/sửa nhầm file công ty khác → 404 | Đúng theo thiết kế: tài khoản bị giới hạn theo công ty; dùng super-admin nếu cần xem chéo. |
+| File vào sai công ty | `companyId` trên form bị bỏ qua với tài khoản công ty (luôn ép về công ty của tài khoản). Dùng tài khoản đúng công ty, hoặc super-admin + `companyId`. |
 | Lỗi TLS khi gọi HTTPS từ .NET 4.5.x | Bật `ServicePointManager.SecurityProtocol \|= SecurityProtocolType.Tls12` (đã có trong client). |
 | Extension bị từ chối | Nằm trong blacklist hoặc ngoài whitelist (mục 5). |
 | Ảnh chưa có `.webp` | Job sinh thumbnail chạy định kỳ; hoặc ảnh lỗi giải mã (xem log CDN). |
