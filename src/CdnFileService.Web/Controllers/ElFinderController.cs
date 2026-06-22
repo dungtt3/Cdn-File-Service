@@ -76,11 +76,7 @@ public class ElFinderController : Controller
             return;
         }
 
-        // Company user: shared zone read-only (companies/ hidden) + own company read-write.
-        var shared = BuildVolume(root, "shared", _options.CdnRequestPath, "Shared", readOnly: true, hideCompanies: true);
-        _connector.AddVolume(shared);
-        await _driver.SetupVolumeAsync(shared);
-
+        // Company user: show ONLY their own company folder (the shared zone is not mounted).
         if (TryGetCompanyId(out var companyId))
         {
             var companyRoot = Path.Combine(root, _options.CompaniesFolder, companyId.ToString());
@@ -89,7 +85,14 @@ public class ElFinderController : Controller
             var company = BuildVolume(companyRoot, $"c{companyId}", companyUrl, $"Company {companyId}", readOnly: false, hideCompanies: false);
             _connector.AddVolume(company);
             await _driver.SetupVolumeAsync(company);
+            return;
         }
+
+        // No company context (should not happen for SSO sessions): fall back to the shared zone
+        // read-only so the file manager still has a volume to open.
+        var shared = BuildVolume(root, "shared", _options.CdnRequestPath, "Shared", readOnly: true, hideCompanies: true);
+        _connector.AddVolume(shared);
+        await _driver.SetupVolumeAsync(shared);
     }
 
     private bool TryGetCompanyId(out int companyId)

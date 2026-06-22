@@ -52,9 +52,11 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         o.AccessDeniedPath = "/Account/Denied";
         o.ExpireTimeSpan = TimeSpan.FromHours(8);
         o.SlidingExpiration = true;
-        // Lax works for the top-level redirect SSO flow (menu link / new tab).
-        // For cross-site iframe embedding, change to SameSiteMode.None + Secure (HTTPS only).
-        o.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+        // SameSite=None + Secure so the session cookie is accepted/sent when the File Manager is
+        // embedded as a cross-site iframe inside a company site (e.g. BA.STaxi "Chọn ảnh").
+        // Requires HTTPS (cdn.staxi.vn is HTTPS).
+        o.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
+        o.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
     });
 
 builder.Services.AddAuthorization(o =>

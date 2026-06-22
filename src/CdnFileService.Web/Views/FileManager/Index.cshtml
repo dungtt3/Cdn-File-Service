@@ -20,7 +20,6 @@
         else if (!string.IsNullOrEmpty((string?)ViewBag.CompanyId))
         {
             <span class="badge text-bg-primary">Company @ViewBag.CompanyId</span>
-            <span>· Shared (read-only)</span>
         }
         · served from <code>@ViewBag.CdnRequestPath</code>
     </span>
@@ -33,7 +32,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/elfinder/@(elfinderVersion)/js/elfinder.min.js"></script>
     <script>
         $(function () {
-            $('#elfinder').elfinder({
+            var isPicker = @(ViewBag.Picker == true ? "true" : "false");
+
+            var opts = {
                 url: '@Url.Content("~/el-finder/connector")',
                 cssAutoLoad: false,
                 height: 640,
@@ -41,7 +42,24 @@
                 commandsOptions: {
                     info: { custom: {} }
                 }
-            });
+            };
+
+            if (isPicker) {
+                // Embedded picker: return the chosen file's absolute URL to the parent window.
+                opts.getFileCallback = function (file, fm) {
+                    var url = (file && file.url) ? file.url : (file ? fm.url(file.hash) : '');
+                    if (url && url.charAt(0) === '/') {
+                        url = window.location.origin + url;
+                    }
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage(
+                            { source: 'cdn-filemanager', url: url, name: file ? file.name : '' }, '*');
+                    }
+                };
+                opts.commandsOptions.getfile = { onlyURL: false, multiple: false, folders: false };
+            }
+
+            $('#elfinder').elfinder(opts);
         });
     </script>
 }

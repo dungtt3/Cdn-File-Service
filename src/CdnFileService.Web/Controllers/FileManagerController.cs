@@ -13,11 +13,14 @@ public class FileManagerController : Controller
 
     public FileManagerController(IOptions<StorageOptions> options) => _options = options.Value;
 
-    public IActionResult Index()
+    public IActionResult Index(int? picker)
     {
         ViewBag.CdnRequestPath = _options.CdnRequestPath;
         ViewBag.IsSuperAdmin = User.HasClaim(Permissions.ClaimType, Permissions.AllCompanies);
         ViewBag.CompanyId = User.FindFirst(Permissions.CompanyClaimType)?.Value;
+        // Picker mode: embedded as an iframe by a company site; selecting a file posts its URL
+        // back to the parent window instead of acting as a standalone manager.
+        ViewBag.Picker = picker == 1;
         return View();
     }
 }
