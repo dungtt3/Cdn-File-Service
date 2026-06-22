@@ -113,6 +113,25 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseSerilogRequestLogging();
+
+// Framing policy: allow the File Manager to be embedded as an iframe by trusted company sites.
+// Configure "Security:FrameAncestors" (e.g. [ "https://admin.staxi.vn", "http://localhost:18445" ]);
+// when empty, framing is open ("*"). X-Frame-Options is removed so CSP frame-ancestors governs.
+var frameAncestors = builder.Configuration.GetSection("Security:FrameAncestors").Get<string[]>();
+var frameAncestorsCsp = (frameAncestors != null && frameAncestors.Length > 0)
+    ? "frame-ancestors 'self' " + string.Join(" ", frameAncestors)
+    : "frame-ancestors *";
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers.Remove("X-Frame-Options");
+        context.Response.Headers["Content-Security-Policy"] = frameAncestorsCsp;
+        return Task.CompletedTask;
+    });
+    await next();
+});
+
 app.UseHttpsRedirection();
 app.UseResponseCompression();
 
