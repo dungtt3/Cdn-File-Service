@@ -165,6 +165,21 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = ElFinderPaths.ThumbRequestPath
 });
 
+// CHIPS: mark SameSite=None cookies as Partitioned so the auth/session cookie still works when the
+// File Manager is embedded as a cross-site iframe (company site) under browser third-party-cookie
+// blocking. The cookie is partitioned by the embedding (top-level) site. Requires Secure.
+app.UseCookiePolicy(new CookiePolicyOptions
+{
+    OnAppendCookie = ctx =>
+    {
+        if (ctx.CookieOptions.SameSite == Microsoft.AspNetCore.Http.SameSiteMode.None
+            && !ctx.CookieOptions.Extensions.Contains("Partitioned"))
+        {
+            ctx.CookieOptions.Extensions.Add("Partitioned");
+        }
+    }
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
