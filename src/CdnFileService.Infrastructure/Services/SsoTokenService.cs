@@ -68,10 +68,13 @@ public class SsoTokenService : ISsoTokenService
         if (payload is null)
             return SsoValidationResult.Fail("Malformed payload.");
 
+        // Allow for clock drift between the issuing company site and this server so valid tokens
+        // are not rejected as "expired" / "too long" merely because the two clocks disagree.
+        const long clockSkewSeconds = 120;
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        if (payload.e < now)
+        if (payload.e < now - clockSkewSeconds)
             return SsoValidationResult.Fail("Token expired.");
-        if (payload.e - now > _options.MaxAgeSeconds + 5)
+        if (payload.e - now > _options.MaxAgeSeconds + clockSkewSeconds)
             return SsoValidationResult.Fail("Token lifetime exceeds the allowed maximum.");
         if (payload.c <= 0 || string.IsNullOrWhiteSpace(payload.u))
             return SsoValidationResult.Fail("Token missing company or user.");
