@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using CdnFileService.Application.Authorization;
 using CdnFileService.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +13,8 @@ public class HomeController : Controller
 
     public HomeController(IFileMetadataService metadata) => _metadata = metadata;
 
-    [Authorize]
+    // Dashboard is super-admin only; company (SSO) users have no access and are denied.
+    [Authorize(Policy = Permissions.AllCompanies)]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         var recent = await _metadata.ListAsync(new Application.DTOs.FileListQuery { PageSize = 10 }, ct);
