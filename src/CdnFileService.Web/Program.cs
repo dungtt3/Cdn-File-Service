@@ -168,9 +168,10 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseAuthentication();
 app.UseAuthorization();
 
+// File Manager is the main/landing screen (the Dashboard is super-admin only).
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=FileManager}/{action=Index}/{id?}");
 app.MapControllers(); // attribute-routed API + elFinder connector
 app.MapHealthChecks("/health");
 
