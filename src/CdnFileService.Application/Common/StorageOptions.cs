@@ -23,7 +23,8 @@ public class StorageOptions
 
     /// <summary>Allowed file extensions (without dot, lower-case).</summary>
     public string[] AllowedExtensions { get; set; } =
-        { "js", "css", "png", "jpg", "jpeg", "gif", "svg", "webp", "pdf", "docx", "xlsx", "zip" };
+        { "js", "css", "png", "jpg", "jpeg", "gif", "svg", "webp", "ico",
+          "woff", "woff2", "ttf", "eot", "otf", "pdf", "docx", "xlsx", "zip" };
 
     /// <summary>Explicitly blocked extensions (takes precedence over the allow-list).</summary>
     public string[] BlockedExtensions { get; set; } =
@@ -34,6 +35,14 @@ public class StorageOptions
 
     /// <summary>Cache-Control max-age (seconds) for served static assets (default 1 year).</summary>
     public int CacheMaxAgeSeconds { get; set; } = 31536000;
+
+    /// <summary>
+    ///     Value sent in the <c>Access-Control-Allow-Origin</c> header for served static assets.
+    ///     Required so fonts (woff/woff2/ttf/...) referenced cross-origin from other sites'
+    ///     stylesheets are not blocked by the browser CORS policy. Reads are public, so "*" is the
+    ///     sensible default; set a specific origin to lock it down.
+    /// </summary>
+    public string CorsAllowOrigin { get; set; } = "*";
 
     /// <summary>Thumbnail max dimension in pixels.</summary>
     public int ThumbnailSize { get; set; } = 200;

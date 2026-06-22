@@ -127,6 +127,13 @@ app.UseStaticFiles(new StaticFileOptions
     {
         ctx.Context.Response.Headers[HeaderNames.CacheControl] =
             $"public,max-age={storage.CacheMaxAgeSeconds}";
+        // Public CDN reads: allow cross-origin so @font-face fonts (and any CORS-checked
+        // resources) referenced from other sites' stylesheets are not blocked by the browser.
+        if (!string.IsNullOrEmpty(storage.CorsAllowOrigin))
+        {
+            ctx.Context.Response.Headers[HeaderNames.AccessControlAllowOrigin] = storage.CorsAllowOrigin;
+            ctx.Context.Response.Headers[HeaderNames.Vary] = HeaderNames.Origin;
+        }
     }
 });
 
