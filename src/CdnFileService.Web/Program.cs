@@ -10,6 +10,7 @@ using elFinder.Net.Drivers.FileSystem;
 using elFinder.Net.Drivers.FileSystem.Extensions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.FileProviders;
@@ -42,6 +43,16 @@ builder.Services.PostConfigure<StorageOptions>(o =>
 // --- elFinder file manager ---
 builder.Services.AddElFinderAspNetCore();
 builder.Services.AddFileSystemDriver(typeof(FileSystemDriver));
+
+// --- Data Protection ---
+// All instances must share the same key ring (and application name), otherwise the auth cookie
+// encrypted on one backend cannot be decrypted on another behind the load balancer -> the user is
+// repeatedly sent back to the login page. Set "DataProtection:KeysPath" to a shared folder/UNC path
+// reachable by every CDN server. When unset (single-server/dev) the default local key ring is used.
+var dpKeysPath = builder.Configuration["DataProtection:KeysPath"];
+var dataProtection = builder.Services.AddDataProtection().SetApplicationName("CdnFileService");
+if (!string.IsNullOrWhiteSpace(dpKeysPath))
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(dpKeysPath));
 
 // --- Authentication & claims-based authorization ---
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
